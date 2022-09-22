@@ -1,24 +1,28 @@
 const sequenceModel = require('../models/Sequence/sequenceModel');
 
-async function generator(sequence_type) {
+//sequence wise number generator function
+async function generator(sequence_type, initial_number = 1, number_of_digits = 5, prefix = "", postfix="") {
     let isSequenceExists = await sequenceModel.findOne({sequence_type: sequence_type});
 
     if (isSequenceExists){
-        let {sequence_number, sequence_digits} = isSequenceExists;
+        let {sequence_number, sequence_digits, prefix, postfix} = isSequenceExists;
         let sequence = generateId(sequence_number, sequence_digits);
         await updateSequence(sequence, sequence_type);
-        return sequence;
+        return prefix + sequence + postfix;
     } else {
-        let {sequence_number} = createSequence(5, sequence_type);
-        return sequence_number;
+        let { sequence_number } = await createSequence(sequence_type, prefix, initial_number, number_of_digits, postfix);
+        return prefix + sequence_number + postfix;
     }
 }
 
-async function createSequence(sequence_digits, sequence_type){
+//create sequence wise number in sequence db
+async function createSequence(sequence_type, prefix, initial_number, sequence_digits, postfix){
     let model = {
-        sequence_number: fillZeros(1, sequence_digits),
+        sequence_number: fillZeros(initial_number, sequence_digits),
         sequence_type: sequence_type,
-        sequence_digits: sequence_digits
+        sequence_digits: sequence_digits,
+        prefix: prefix,
+        postfix: postfix
     };
     await sequenceModel.create(model, (err)=>{
         if (err) {
@@ -30,6 +34,7 @@ async function createSequence(sequence_digits, sequence_type){
     return model;
 }
 
+//update sequence wise number in sequence db
 async function updateSequence(sequence_number, sequence_type){
     await sequenceModel.updateOne(
         {sequence_type: sequence_type}, 
@@ -42,20 +47,21 @@ async function updateSequence(sequence_number, sequence_type){
     });
 }
 
+//create sequence number {num arg is the initial value & numDigits arg is the digits of number}
 function fillZeros(num, numDigits) {
     var number = num.toString();
     numDigits = numDigits - number.length;
     while(numDigits > 0) {
-      number = "0" + number;
+      number = number + "0";
       numDigits--;
     }
     return number;
 }
-
+//function is called when update function is calling {pre-incremental function}
 function incrementNumber(num, _max) {
     return num === _max ? null : ++num;
 }
-
+//function is called when update function is calling {passing arg num & numDigits to fillZeros function}
 function generateId(numbers, numNumbers) {
     let maxNumber = Math.pow(10, numNumbers) - 1;
     let nextNumber = incrementNumber(numbers, maxNumber);
