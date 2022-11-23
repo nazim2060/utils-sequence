@@ -52,7 +52,7 @@ function fillZeros(num, numDigits) {
     var number = num.toString();
     numDigits = numDigits - number.length;
     while(numDigits > 0) {
-      number = number + "0";
+      number = "0" + number;
       numDigits--;
     }
     return number;
